@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>迷宫突围 · 深渊回廊</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background-color: #050a10;
+        }
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #e0e8ff;
+            background: rgba(10, 18, 28, 0.85);
+            padding: 16px 26px;
+            border-radius: 14px;
+            backdrop-filter: blur(6px);
+            border-left: 6px solid #c9a53b;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.7);
+            pointer-events: none;
+            z-index: 10;
+        }
+        #stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            background: rgba(10, 18, 28, 0.85);
+            padding: 16px 30px;
+            border-radius: 14px;
+            backdrop-filter: blur(6px);
+            text-align: right;
+            border-right: 6px solid #3acf8c;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.7);
+            pointer-events: none;
+            z-index: 10;
+        }
+        #stats .label { font-size: 15px; opacity: 0.75; letter-spacing: 2px; }
+        #stats .value { font-size: 38px; font-weight: bold; line-height: 1.2; text-shadow: 0 0 18px; }
+        #health-value { color: #ff6b6b; }
+        #items-value { color: #ffd966; }
+
+        #controls-hint {
+            position: absolute;
+            bottom: 30px;
+            left: 20px;
+            color: #b0c7e0;
+            background: rgba(0,0,0,0.5);
+            padding: 10px 22px;
+            border-radius: 40px;
+            font-size: 15px;
+            backdrop-filter: blur(5px);
+            pointer-events: none;
+            z-index: 10;
+        }
+        #message-panel {
+            position: absolute;
+            bottom: 30px;
+            right: 20px;
+            color: white;
+            background: rgba(20, 30, 45, 0.9);
+            padding: 14px 28px;
+            border-radius: 40px;
+            font-size: 18px;
+            font-weight: bold;
+            backdrop-filter: blur(5px);
+            border: 1px solid #4a6c9e;
+            pointer-events: none;
+            z-index: 10;
+        }
+        #crosshair {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 10px; height: 10px;
+            background: rgba(255,255,240,0.9);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 15px #aad0ff;
+            border: 1px solid #222;
+            pointer-events: none;
+            z-index: 5;
+        }
+        #instruction-click {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            background: rgba(10,20,30,0.8);
+            padding: 14px 36px;
+            border-radius: 50px;
+            font-size: 24px;
+            backdrop-filter: blur(5px);
+            border: 1px solid #6a9fd8;
+            pointer-events: none;
+            z-index: 15;
+            transition: opacity 0.5s;
+        }
+        #action-bar {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 18px;
+            z-index: 20;
+        }
+        .game-btn {
+            background: rgba(25, 40, 60, 0.9);
+            color: #f0f4ff;
+            border: 1px solid #5a8fd0;
+            padding: 12px 28px;
+            border-radius: 50px;
+            font-size: 17px;
+            font-weight: bold;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+            transition: 0.2s;
+            letter-spacing: 1px;
+            pointer-events: auto;
+        }
+        .game-btn:hover {
+            background: #2f5580;
+            box-shadow: 0 0 18px #3f7bb3;
+            transform: scale(1.03);
+        }
+        #user-area {
+            position: absolute;
+            top: 20px;
+            left: 240px;
+            background: rgba(15, 25, 40, 0.9);
+            padding: 10px 22px;
+            border-radius: 50px;
+            backdrop-filter: blur(6px);
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border: 1px solid #4e7fb0;
+            z-index: 25;
+        }
+        #username-display { font-weight: bold; color: #b8d4ff; }
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        .modal-overlay.active { visibility: visible; pointer-events: auto; }
+        .modal-card {
+            background: #14212e;
+            padding: 32px 44px;
+            border-radius: 28px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            border: 1px solid #3f77a6;
+            color: white;
+            min-width: 360px;
+            text-align: center;
+        }
+        .modal-card h2 { margin-top: 0; color: #f3d37c; }
+        .input-group { margin: 22px 0; text-align: left; }
+        .input-group label { display: block; margin-bottom: 8px; opacity: 0.85; }
+        .input-group input {
+            width: 100%; padding: 12px 18px; border-radius: 40px; border: none;
+            background: #0b1722; color: white; font-size: 16px;
+            border: 1px solid #3f6588; box-sizing: border-box;
+        }
+        .modal-actions { display: flex; gap: 14px; justify-content: center; margin-top: 28px; }
+        .modal-btn {
+            background: #244b6e; border: none; color: white; padding: 10px 26px;
+            border-radius: 40px; font-weight: bold; cursor: pointer;
+            border: 1px solid #6a9fd8; transition: 0.2s;
+        }
+        .modal-btn:hover { background: #356a96; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <div style="font-size: 26px; font-weight: bold;">🌀 深渊回廊 · 巨型迷宫</div>
+        <div style="opacity:0.8;">收集光球 · 躲避暗影 · 出口隐蔽</div>
+    </div>
+    <div id="stats">
+        <div><span class="label">❤️ 生命</span><div id="health-value" class="value">3</div></div>
+        <div><span class="label">✨ 收集</span><div id="items-value" class="value">0 / 14</div></div>
+    </div>
+    <div id="controls-hint">🎮 WASD 移动 · 鼠标环顾 · 点击画面开始</div>
+    <div id="message-panel">🏁 探索巨型迷宫...</div>
+    <div id="crosshair"></div>
+    <div id="instruction-click">🔍 点击此处开始探索</div>
+
+    <div id="user-area">
+        <span>👤</span><span id="username-display">未登录</span>
+        <button class="game-btn" id="login-btn" style="padding:6px 18px;">登录/注册</button>
+        <button class="game-btn" id="save-progress-btn" style="padding:6px 18px;">💾 保存</button>
+        <button class="game-btn" id="load-progress-btn" style="padding:6px 18px;">📂 加载</button>
+    </div>
+    <div id="action-bar">
+        <button class="game-btn" id="restart-btn">🔄 重新突围</button>
+    </div>
+
+    <div class="modal-overlay" id="auth-modal">
+        <div class="modal-card">
+            <h2>登录 / 注册</h2>
+            <div class="input-group"><label>用户名</label><input type="text" id="auth-username" autocomplete="off"></div>
+            <div class="input-group"><label>密码</label><input type="password" id="auth-password" autocomplete="off"></div>
+            <div class="modal-actions">
+                <button class="modal-btn" id="auth-login-btn">登录</button>
+                <button class="modal-btn" id="auth-register-btn">注册</button>
+                <button class="modal-btn" id="auth-cancel-btn">取消</button>
+            </div>
+            <div id="auth-message" style="margin-top:16px; color:#f9b97a;"></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="victory-modal">
+        <div class="modal-card">
+            <h2>🎉 成功突围！</h2>
+            <div style="font-size:28px; margin:20px;">你征服了深渊回廊</div>
+            <div>收集: <span id="victory-items">0/14</span> · 生命: <span id="victory-health">3</span></div>
+            <div class="modal-actions">
+                <button class="modal-btn" id="victory-save-btn">💾 保存战绩</button>
+                <button class="modal-btn" id="victory-restart-btn">🔄 再闯迷宫</button>
+                <button class="modal-btn" id="victory-close-btn">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="importmap">
+        {"imports": {
+            "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+        }}
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        // 巨型迷宫配置
+        const MAP_SIZE = 64;
+        const WALL_HEIGHT = 2.6;
+        
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x071016);
+        scene.fog = new THREE.FogExp2(0x071016, 0.018);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
+        camera.position.set(0, 2.0, 8);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+
+        const cssRenderer = new CSS2DRenderer();
+        cssRenderer.setSize(window.innerWidth, window.innerHeight);
+        cssRenderer.domElement.style.position = 'absolute';
+        cssRenderer.domElement.style.top = '0'; cssRenderer.domElement.style.left = '0';
+        cssRenderer.domElement.style.pointerEvents = 'none';
+        document.body.appendChild(cssRenderer.domElement);
+
+        const controls = new PointerLockControls(camera, renderer.domElement);
+        const instructionEl = document.getElementById('instruction-click');
+        renderer.domElement.addEventListener('click', () => controls.lock());
+        controls.addEventListener('lock', () => {
+            instructionEl.style.opacity = '0';
+            setTimeout(() => instructionEl.style.display = 'none', 500);
+        });
+        controls.addEventListener('unlock', () => {
+            instructionEl.style.display = 'block';
+            instructionEl.style.opacity = '1';
+        });
+        scene.add(controls.getObject());
+
+        const state = {
+            health: 3, maxHealth: 3,
+            itemsCollected: 0, totalItems: 14,
+            gameActive: true, victory: false,
+            invincible: false, invincibleTimer: 0, damageCooldown: 1.3,
+            playerRadius: 0.6, moveSpeed: 4.8,
+            enemySpeed: 2.0,
+            keys: { w: false, a: false, s: false, d: false }
+        };
+        const spawnPoint = new THREE.Vector3(0, 1.5, 0);
+        
+        const walls = [];
+        const items = [];
+        const enemies = [];
+        let exitZone = null;
+
+        const healthEl = document.getElementById('health-value');
+        const itemsEl = document.getElementById('items-value');
+        const messageEl = document.getElementById('message-panel');
+
+        let currentUser = null;
+        const userDisplay = document.getElementById('username-display');
+        const authModal = document.getElementById('auth-modal');
+        const victoryModal = document.getElementById('victory-modal');
+
+        function updateUI() {
+            healthEl.textContent = state.health;
+            itemsEl.textContent = `${state.itemsCollected} / ${state.totalItems}`;
+            if (state.victory) messageEl.innerHTML = '🎉 突围成功！ 你找到了隐藏出口！';
+            else if (!state.gameActive) messageEl.innerHTML = '💀 迷失于深渊...';
+            else messageEl.innerHTML = state.itemsCollected === state.totalItems ? '✅ 光球集齐！寻找出口' : '🔦 巨型迷宫 · 谨慎前行';
+        }
+
+        // 构建超大迷宫
+        function buildMaze() {
+            const ground = new THREE.Mesh(new THREE.PlaneGeometry(MAP_SIZE, MAP_SIZE), 
+                new THREE.MeshStandardMaterial({ color: 0x162433, roughness: 0.85 }));
+            ground.rotation.x = -Math.PI/2;
+            ground.position.y = 0;
+            ground.receiveShadow = true;
+            scene.add(ground);
+            
+            const gridHelper = new THREE.GridHelper(MAP_SIZE, 32, 0x7a9bcb, 0x1f3248);
+            gridHelper.position.y = 0.02;
+            scene.add(gridHelper);
+
+            const ambient = new THREE.AmbientLight(0x3a4e6b);
+            scene.add(ambient);
+            const dirLight = new THREE.DirectionalLight(0xfff2dd, 1.2);
+            dirLight.position.set(12, 28, 18);
+            dirLight.castShadow = true; dirLight.receiveShadow = true;
+            dirLight.shadow.mapSize.width = 2048; dirLight.shadow.mapSize.height = 2048;
+            const d = 40;
+            dirLight.shadow.camera.left = -d; dirLight.shadow.camera.right = d;
+            dirLight.shadow.camera.top = d; dirLight.shadow.camera.bottom = -d;
+            dirLight.shadow.camera.near = 1; dirLight.shadow.camera.far = 70;
+            dirLight.shadow.bias = -0.0005;
+            scene.add(dirLight);
+            
+            const fillLight = new THREE.PointLight(0x5e7fa3, 0.9);
+            fillLight.position.set(-8, 12, 10);
+            scene.add(fillLight);
+            const backLight = new THREE.PointLight(0x4e6885, 0.7);
+            backLight.position.set(5, 8, -15);
+            scene.add(backLight);
+
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0x7d95b0, roughness: 0.6, emissive: new THREE.Color(0x0e1a26), emissiveIntensity: 0.25 });
+            
+            // 扩展墙壁定义 - 巨型迷宫 (外框 + 大量内部隔断)
+            const half = MAP_SIZE/2 - 0.5;
+            const wallDefs = [
+                // 外围
+                { pos:[0, WALL_HEIGHT/2, -half], scale:[MAP_SIZE, WALL_HEIGHT, 1] },
+                { pos:[0, WALL_HEIGHT/2, half], scale:[MAP_SIZE, WALL_HEIGHT, 1] },
+                { pos:[-half, WALL_HEIGHT/2, 0], scale:[1, WALL_HEIGHT, MAP_SIZE] },
+                { pos:[half, WALL_HEIGHT/2, 0], scale:[1, WALL_HEIGHT, MAP_SIZE] },
+                
+                // 内部复杂结构 (刻意设计迂回路径，出口在远端)
+                { pos:[-10, WALL_HEIGHT/2, -20], scale:[18, WALL_HEIGHT, 1] },
+                { pos:[12, WALL_HEIGHT/2, -18], scale:[14, WALL_HEIGHT, 1] },
+                { pos:[-14, WALL_HEIGHT/2, 8], scale:[12, WALL_HEIGHT, 1] },
+                { pos:[10, WALL_HEIGHT/2, 10], scale:[16, WALL_HEIGHT, 1] },
+                { pos:[-6, WALL_HEIGHT/2, -6], scale:[1, WALL_HEIGHT, 14] },
+                { pos:[14, WALL_HEIGHT/2, -4], scale:[1, WALL_HEIGHT, 16] },
+                { pos:[-16, WALL_HEIGHT/2, 18], scale:[18, WALL_HEIGHT, 1] },
+                { pos:[6, WALL_HEIGHT/2, 20], scale:[14, WALL_HEIGHT, 1] },
+                { pos:[-18, WALL_HEIGHT/2, -10], scale:[1, WALL_HEIGHT, 16] },
+                { pos:[8, WALL_HEIGHT/2, -18], scale:[16, WALL_HEIGHT, 1] },
+                { pos:[0, WALL_HEIGHT/2, -2], scale:[8, WALL_HEIGHT, 1] },
+                { pos:[-4, WALL_HEIGHT/2, 14], scale:[1, WALL_HEIGHT, 10] },
+                { pos:[20, WALL_HEIGHT/2, -16], scale:[1, WALL_HEIGHT, 12] },
+                { pos:[-22, WALL_HEIGHT/2, -6], scale:[10, WALL_HEIGHT, 1] },
+                { pos:[4, WALL_HEIGHT/2, 22], scale:[12, WALL_HEIGHT, 1] },
+                { pos:[-20, WALL_HEIGHT/2, 22], scale:[12, WALL_HEIGHT, 1] },
+                { pos:[18, WALL_HEIGHT/2, 20], scale:[1, WALL_HEIGHT, 10] },
+                { pos:[-8, WALL_HEIGHT/2, -24], scale:[14, WALL_HEIGHT, 1] },
+                { pos:[16, WALL_HEIGHT/2, -24], scale:[12, WALL_HEIGHT, 1] },
+                { pos:[-24, WALL_HEIGHT/2, 4], scale:[1, WALL_HEIGHT, 16] },
+                { pos:[24, WALL_HEIGHT/2, 0], scale:[1, WALL_HEIGHT, 14] },
+                { pos:[0, WALL_HEIGHT/2, 26], scale:[20, WALL_HEIGHT, 1] },
+                { pos:[-26, WALL_HEIGHT/2, -14], scale:[1, WALL_HEIGHT, 12] },
+                { pos:[22, WALL_HEIGHT/2, 8], scale:[8, WALL_HEIGHT, 1] },
+                { pos:[-12, WALL_HEIGHT/2, 26], scale:[10, WALL_HEIGHT, 1] },
+            ];
+
+            wallDefs.forEach(def => {
+                const wall = new THREE.Mesh(new THREE.BoxGeometry(...def.scale), wallMat);
+                wall.position.set(def.pos[0], def.pos[1], def.pos[2]);
+                wall.castShadow = true; wall.receiveShadow = true;
+                scene.add(wall);
+                walls.push({
+                    min: new THREE.Vector3(def.pos[0]-def.scale[0]/2, 0, def.pos[2]-def.scale[2]/2),
+                    max: new THREE.Vector3(def.pos[0]+def.scale[0]/2, def.scale[1], def.pos[2]+def.scale[2]/2)
+                });
+            });
+
+            // 添加大量立柱增加压迫感
+            const pillarMat = new THREE.MeshStandardMaterial({ color: 0x95abc7 });
+            for (let i = -28; i <= 28; i+=8) {
+                for (let j = -28; j <= 28; j+=8) {
+                    if (Math.random() > 0.65) continue;
+                    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.6,2.0), pillarMat);
+                    pillar.position.set(i, 1.0, j);
+                    pillar.receiveShadow = true; pillar.castShadow = true;
+                    scene.add(pillar);
+                }
+            }
+        }
+
+        function spawnItems() {
+            const itemMat = new THREE.MeshStandardMaterial({ color: 0xffc164, emissive: new THREE.Color(0xff6600), emissiveIntensity: 1.4 });
+            const positions = [
+                [-8,1.2,-18], [10,1.2,-12], [-14,1.2,14], [14,1.2,-14],
+                [-20,1.2,6], [8,1.2,18], [-6,1.2,-22], [18,1.2,2],
+                [-16,1.2,-4], [4,1.2,26], [-24,1.2,12], [22,1.2,-8],
+                [0,1.2,12], [-12,1.2,-26]
+            ];
+            positions.forEach(pos => {
+                const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.55, 16), itemMat.clone());
+                sphere.position.set(pos[0], pos[1], pos[2]);
+                sphere.castShadow = true;
+                scene.add(sphere);
+                const ring = new THREE.Mesh(new THREE.TorusGeometry(0.7,0.04,8,24), new THREE.MeshStandardMaterial({ color:0xffbb44, emissive:0xff4400 }));
+                ring.rotation.x = Math.PI/2;
+                sphere.add(ring);
+                items.push({ mesh: sphere, collected: false, ring });
+            });
+            state.totalItems = items.length;
+            updateUI();
+        }
+
+        function spawnEnemies() {
+            const enemyMat = new THREE.MeshStandardMaterial({ color: 0xcc3f3f, emissive: new THREE.Color(0x550000), emissiveIntensity: 2.0 });
+            const createEnemy = (x, z, wp) => {
+                const e = new THREE.Mesh(new THREE.ConeGeometry(1.0, 2.0, 8), enemyMat);
+                e.castShadow = true; e.receiveShadow = true;
+                e.position.set(x, 1.0, z);
+                scene.add(e);
+                return { mesh: e, waypoints: wp, currentWP: 0 };
+            };
+            enemies.push(createEnemy(-10, 14, [new THREE.Vector3(-10,1,14), new THREE.Vector3(-16,1,8), new THREE.Vector3(-6,1,2)]));
+            enemies.push(createEnemy(12, -14, [new THREE.Vector3(12,1,-14), new THREE.Vector3(6,1,-10), new THREE.Vector3(18,1,-4)]));
+            enemies.push(createEnemy(-18, -10, [new THREE.Vector3(-18,1,-10), new THREE.Vector3(-24,1,-2), new THREE.Vector3(-12,1,2)]));
+            enemies.push(createEnemy(20, 10, [new THREE.Vector3(20,1,10), new THREE.Vector3(14,1,16), new THREE.Vector3(26,1,4)]));
+        }
+
+        function createExit() {
+            const exitMat = new THREE.MeshStandardMaterial({ color: 0x4fe0b0, emissive: new THREE.Color(0x1a6e4a), transparent: true, opacity:0.85 });
+            const exitMesh = new THREE.Mesh(new THREE.CylinderGeometry(1.6,1.6,0.3,20), exitMat);
+            exitMesh.position.set(26, 0.2, 26);
+            exitMesh.receiveShadow = true;
+            scene.add(exitMesh);
+            
+            const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.5,4.0), new THREE.MeshStandardMaterial({ color:0xaaffbb, emissive:0x226644, transparent:true, opacity:0.5 }));
+            pillar.position.set(26, 2.2, 26);
+            scene.add(pillar);
+            
+            exitZone = { position: new THREE.Vector3(26, 1.0, 26), radius: 2.2 };
+            
+            const div = document.createElement('div');
+            div.textContent = '🚪 隐秘出口';
+            div.style.cssText = 'color:#b0ffb0; font-size:22px; background:rgba(20,60,30,0.8); padding:6px 20px; border-radius:30px; border:1px solid #8f8;';
+            const label = new CSS2DObject(div);
+            label.position.set(26, 3.5, 26);
+            scene.add(label);
+        }
+
+        function collideWithWalls(pos, radius) {
+            for (let w of walls) {
+                const closest = new THREE.Vector3(
+                    Math.max(w.min.x, Math.min(pos.x, w.max.x)),
+                    Math.max(w.min.y, Math.min(pos.y, w.max.y)),
+                    Math.max(w.min.z, Math.min(pos.z, w.max.z))
+                );
+                if (pos.distanceTo(closest) < radius) return { collided: true };
+            }
+            return { collided: false };
+        }
+
+        // 账号系统 (同上，略作调整)
+        function hash(p){ return btoa(p); }
+        function registerUser(u,p){
+            const users = JSON.parse(localStorage.getItem('maze_users')||'{}');
+            if(users[u]) return {success:false,message:'用户名已存在'};
+            users[u] = {password:hash(p), progress:null};
+            localStorage.setItem('maze_users', JSON.stringify(users));
+            return {success:true};
+        }
+        function loginUser(u,p){
+            const users = JSON.parse(localStorage.getItem('maze_users')||'{}');
+            const user = users[u];
+            if(!user) return {success:false,message:'用户不存在'};
+            if(user.password !== hash(p)) return {success:false,message:'密码错误'};
+            currentUser = u; userDisplay.textContent = u; return {success:true};
+        }
+        function saveProgress(){
+            if(!currentUser){ alert('请先登录'); return false; }
+            const users = JSON.parse(localStorage.getItem('maze_users')||'{}');
+            if(!users[currentUser]) return false;
+            users[currentUser].progress = {
+                health: state.health, itemsCollected: state.itemsCollected,
+                position: [camera.position.x, camera.position.y, camera.position.z],
+                itemsState: items.map(it=>it.collected),
+                victory: state.victory, gameActive: state.gameActive
+            };
+            localStorage.setItem('maze_users', JSON.stringify(users));
+            messageEl.innerHTML = '💾 进度已保存'; setTimeout(updateUI, 1200);
+            return true;
+        }
+        function loadProgress(){
+            if(!currentUser){ alert('请先登录'); return false; }
+            const users = JSON.parse(localStorage.getItem('maze_users')||'{}');
+            const prog = users[currentUser]?.progress;
+            if(!prog){ alert('无存档'); return false; }
+            state.health = prog.health; state.itemsCollected = prog.itemsCollected;
+            state.victory = prog.victory; state.gameActive = prog.gameActive;
+            camera.position.set(prog.position[0], prog.position[1], prog.position[2]);
+            items.forEach((it,i)=>{ it.collected = prog.itemsState[i]; it.mesh.visible = !it.collected; });
+            updateUI(); messageEl.innerHTML = '📂 进度已加载';
+            return true;
+        }
+        function resetGame(){
+            state.health = state.maxHealth; state.itemsCollected = 0;
+            state.gameActive = true; state.victory = false;
+            camera.position.copy(spawnPoint);
+            items.forEach(it=>{ it.collected = false; it.mesh.visible = true; });
+            enemies.forEach((e,i)=>{
+                if(i===0) e.mesh.position.set(-10,1,14);
+                else if(i===1) e.mesh.position.set(12,1,-14);
+                else if(i===2) e.mesh.position.set(-18,1,-10);
+                else e.mesh.position.set(20,1,10);
+                e.currentWP = 0;
+            });
+            updateUI();
+            victoryModal.classList.remove('active');
+        }
+        function showVictory(){
+            document.getElementById('victory-items').textContent = `${state.itemsCollected}/${state.totalItems}`;
+            document.getElementById('victory-health').textContent = state.health;
+            victoryModal.classList.add('active');
+        }
+
+        document.addEventListener('keydown', e => {
+            if(!state.gameActive||state.victory) return;
+            switch(e.code){
+                case 'KeyW': state.keys.w=true; e.preventDefault(); break;
+                case 'KeyA': state.keys.a=true; e.preventDefault(); break;
+                case 'KeyS': state.keys.s=true; e.preventDefault(); break;
+                case 'KeyD': state.keys.d=true; e.preventDefault(); break;
+            }
+        });
+        document.addEventListener('keyup', e => {
+            switch(e.code){
+                case 'KeyW': state.keys.w=false; e.preventDefault(); break;
+                case 'KeyA': state.keys.a=false; e.preventDefault(); break;
+                case 'KeyS': state.keys.s=false; e.preventDefault(); break;
+                case 'KeyD': state.keys.d=false; e.preventDefault(); break;
+            }
+        });
+
+        buildMaze(); spawnItems(); spawnEnemies(); createExit();
+
+        const particles = new THREE.Points(
+            new THREE.BufferGeometry().setFromPoints(Array.from({length:800},()=>new THREE.Vector3((Math.random()-0.5)*MAP_SIZE*1.5, Math.random()*10, (Math.random()-0.5)*MAP_SIZE*1.5))),
+            new THREE.PointsMaterial({color:0xaaccff, size:0.05})
+        );
+        scene.add(particles);
+
+        const clock = new THREE.Clock();
+        function animate(){
+            const delta = Math.min(clock.getDelta(), 0.1);
+            if(state.gameActive && !state.victory && controls.isLocked){
+                const speed = state.moveSpeed * delta;
+                const forward = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
+                forward.y=0; forward.normalize();
+                const right = new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion);
+                right.y=0; right.normalize();
+                let moveX=0, moveZ=0;
+                if(state.keys.w){ moveX+=forward.x*speed; moveZ+=forward.z*speed; }
+                if(state.keys.s){ moveX-=forward.x*speed; moveZ-=forward.z*speed; }
+                if(state.keys.a){ moveX-=right.x*speed; moveZ-=right.z*speed; }
+                if(state.keys.d){ moveX+=right.x*speed; moveZ+=right.z*speed; }
+                if(moveX||moveZ){
+                    const newPos = camera.position.clone().add(new THREE.Vector3(moveX,0,moveZ));
+                    if(!collideWithWalls(newPos, state.playerRadius).collided) camera.position.copy(newPos);
+                }
+                camera.position.y = 1.8;
+                
+                items.forEach(it=>{
+                    if(it.collected) return;
+                    if(camera.position.distanceTo(it.mesh.position) < 2.2){
+                        it.collected=true; it.mesh.visible=false; state.itemsCollected++; updateUI();
+                    }
+                });
+                if(exitZone && camera.position.distanceTo(exitZone.position) < exitZone.radius && !state.victory){
+                    state.victory = true; state.gameActive = false; updateUI(); showVictory();
+                }
+                if(state.invincible){ state.invincibleTimer-=delta; if(state.invincibleTimer<=0) state.invincible=false; }
+                enemies.forEach(e=>{
+                    const wp = e.waypoints, target = wp[e.currentWP];
+                    const dir = target.clone().sub(e.mesh.position).normalize();
+                    e.mesh.position.add(dir.multiplyScalar(state.enemySpeed*delta));
+                    if(e.mesh.position.distanceTo(target)<0.6) e.currentWP = (e.currentWP+1)%wp.length;
+                    if(!state.invincible && state.gameActive && camera.position.distanceTo(e.mesh.position) < 2.0){
+                        state.health--; state.invincible=true; state.invincibleTimer=state.damageCooldown;
+                        if(state.health<=0){ state.gameActive=false; state.health=0; } updateUI();
+                    }
+                });
+                items.forEach(it=>{ if(!it.collected) it.mesh.rotation.y += delta*2.2; });
+            }
+            particles.rotation.y += 0.002;
+            renderer.render(scene, camera); cssRenderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // UI绑定
+        document.getElementById('restart-btn').addEventListener('click', resetGame);
+        document.getElementById('login-btn').addEventListener('click', ()=>{
+            authModal.classList.add('active'); document.getElementById('auth-message').textContent='';
+        });
+        document.getElementById('auth-cancel-btn').addEventListener('click', ()=>authModal.classList.remove('active'));
+        document.getElementById('auth-register-btn').addEventListener('click', ()=>{
+            const n=document.getElementById('auth-username').value.trim(), p=document.getElementById('auth-password').value;
+            if(!n||!p){ document.getElementById('auth-message').textContent='请输入用户名和密码'; return; }
+            const res=registerUser(n,p);
+            if(res.success){ currentUser=n; userDisplay.textContent=n; authModal.classList.remove('active'); }
+            else alert(res.message);
+        });
+        document.getElementById('auth-login-btn').addEventListener('click', ()=>{
+            const n=document.getElementById('auth-username').value.trim(), p=document.getElementById('auth-password').value;
+            const res=loginUser(n,p);
+            if(res.success) authModal.classList.remove('active'); else alert(res.message);
+        });
+        document.getElementById('save-progress-btn').addEventListener('click', saveProgress);
+        document.getElementById('load-progress-btn').addEventListener('click', loadProgress);
+        document.getElementById('victory-save-btn').addEventListener('click', ()=>{ saveProgress(); victoryModal.classList.remove('active'); });
+        document.getElementById('victory-restart-btn').addEventListener('click', ()=>{ resetGame(); victoryModal.classList.remove('active'); });
+        document.getElementById('victory-close-btn').addEventListener('click', ()=>victoryModal.classList.remove('active'));
+
+        window.addEventListener('resize', ()=>{
+            camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight); cssRenderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        window.addEventListener('contextmenu', e=>e.preventDefault());
+        updateUI();
+    </script>
+</body>
+</html>
